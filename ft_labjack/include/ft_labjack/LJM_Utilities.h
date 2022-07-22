@@ -237,6 +237,9 @@ int IsNetwork(int connectionType);
 **/
 int DoesDeviceHaveWiFi(int handle);
 
+bool initalize_flag_ = true; // JH
+double leftFootAxisData_temp[6]; // JH
+int tick_count = 0;
 
 // Source
 

@@ -15,43 +15,49 @@ int main(int argc, char **argv)
 
 	ros::Publisher ros_pub = nh.advertise<std_msgs::Float64MultiArray>("/ft_labjack", 10);
 
-	ros::Rate rate(1);
+	ros::Rate rate(200);
 
 	std_msgs::Float64MultiArray msg;
 
 	int count = 1;
-
 	int err;
 	int handle;
 	int i;
 	int errorAddress = INITIAL_ERR_ADDRESS;
 
-	const double calibrationMatrixLFoot[6][6] = {
-		{-0.74957, 0.24281, -23.71506, 466.60093, 18.22998, -468.17685},
-		{7.19002, -546.10473, -6.38277, 266.54205, -11.70446, 277.80902},
-		{-695.34548, -16.86802, -637.23056, 11.25426, -777.28613, 38.67756},
-		{-0.77968, -7.75893, 14.91040, 3.51086, -16.01169, 4.68867},
-		{-17.44361, -0.36882, 8.83623, -6.62325, 9.17076, 6.19479},
-		{-0.31783, 7.67933, -0.32218, 7.62097, -0.22801, 7.95418}};
-
+	// const double calibrationMatrixLFoot[6][6] = {
+	// 	{10.33210006, 2.870928506, 35.22072861, -523.6694973, -77.00177467, 511.9011159},
+	// 	{-105.743662,	605.4978365, 	26.33334729, 	-303.4779539,	39.6309077,	-298.3805753},
+	// 	{886.3198703,	26.78106668,	893.893759,	29.2209897	,877.0217466,	47.63717902},
+	// 	{-2.298244201,	8.507400105	,-18.31270999	,-4.996775944	,20.13146101	,-3.042080899},
+	// 	{21.97888714,	0.7301285954,	-12.10184833	,6.96877549,	-9.49941147	,-7.780829137},
+	// 	{1.345444842	,-8.622316201,	0.7316302626,	-8.694377615	,1.102496696	,-8.461854155}};
+    const double calibrationMatrixLFoot[6][6] = {
+    {3.66373, -2.53887, -56.93166, 472.72786, 55.48633, -480.00204},
+    {69.76364, -550.39726, -18.98287, 268.38284, -51.71793, 281.63366},
+    {-694.83314, -48.95910, -677.24401, -53.91778, -721.44018, -44.23236},
+    {0.81357, -7.81489, 14.99121, 5.16497, -16.16116, 2.94277},
+    {-17.34220, -1.31783, 9.88078, -5.83100, 7.85218, 7.37678},
+    {-0.78857, 7.80856, -1.07929, 7.63313, -0.74397, 7.78721}};
+    
 	enum
 	{
 		NUM_FRAMES_CONFIG = 24
 	};
 	const char *aNamesConfig[NUM_FRAMES_CONFIG] =
-		{"AIN0_NEGATIVE_CH", "AIN0_RANGE", "AIN0_RESOLUTION_INDEX", "AIN0_SETTLING_US",
-		 "AIN2_NEGATIVE_CH", "AIN2_RANGE", "AIN2_RESOLUTION_INDEX", "AIN2_SETTLING_US",
-		 "AIN4_NEGATIVE_CH", "AIN4_RANGE", "AIN4_RESOLUTION_INDEX", "AIN4_SETTLING_US",
-		 "AIN6_NEGATIVE_CH", "AIN6_RANGE", "AIN6_RESOLUTION_INDEX", "AIN6_SETTLING_US",
-		 "AIN8_NEGATIVE_CH", "AIN8_RANGE", "AIN8_RESOLUTION_INDEX", "AIN8_SETTLING_US",
-		 "AIN10_NEGATIVE_CH", "AIN10_RANGE", "AIN10_RESOLUTION_INDEX", "AIN10_SETTLING_US"};
+		{"AIN0_NEGATIVE_CH", "AIN0_RANGE", "STREAM_RESOLUTION_INDEX", "STREAM_SETTLING_US",
+		 "AIN2_NEGATIVE_CH", "AIN2_RANGE", "STREAM_RESOLUTION_INDEX", "STREAM_SETTLING_US",
+		 "AIN4_NEGATIVE_CH", "AIN4_RANGE", "STREAM_RESOLUTION_INDEX", "STREAM_SETTLING_US",
+		 "AIN6_NEGATIVE_CH", "AIN6_RANGE", "STREAM_RESOLUTION_INDEX", "STREAM_SETTLING_US",
+		 "AIN8_NEGATIVE_CH", "AIN8_RANGE", "STREAM_RESOLUTION_INDEX", "STREAM_SETTLING_US",
+		 "AIN10_NEGATIVE_CH", "AIN10_RANGE", "STREAM_RESOLUTION_INDEX", "STREAM_SETTLING_US"};
 	const double aValuesConfig[NUM_FRAMES_CONFIG] =
-		{1, 10, 0, 0,
-		 3, 10, 0, 0,
-		 5, 10, 0, 0,
-		 7, 10, 0, 0,
-		 9, 10, 0, 0,
-		 11, 10, 0, 0};
+		{1, 10, 8, 80,
+		 3, 10, 8, 80,
+		 5, 10, 8, 80,
+		 7, 10, 8, 80,
+		 9, 10, 8, 80 ,
+		 11, 10, 8, 80};
 
 	// Set up for reading AIN values
 	enum
@@ -96,14 +102,30 @@ int main(int argc, char **argv)
 			{
 				_lf += calibrationMatrixLFoot[i][j] * aValuesAIN[j];
 			}
+
+            if(initalize_flag_ == true){
+                
+                leftFootAxisData_temp[i] = _lf;
+            }
+            std::cout << " v_curr : " << _lf << std::endl;
+            _lf = _lf - leftFootAxisData_temp[i];
 			leftFootAxisData[i] = _lf;
 			msg.data.push_back(_lf);
 		}
-
+        tick_count += 1;
+        if(tick_count == 5){
+            initalize_flag_ = false;
+        }
+        
+        std::cout << " v_init : " << leftFootAxisData_temp[0] << " v_init : " << leftFootAxisData_temp[1] << " v_init : " << leftFootAxisData_temp[2] << " v_init : " << leftFootAxisData_temp[3] << " v_init : " << leftFootAxisData_temp[4] << " v_init : " << leftFootAxisData_temp[5] << std::endl;
+        
+        
+        
 		ros_pub.publish(msg);
 		rate.sleep();
 		msg.data.erase(msg.data.begin(), msg.data.end());
 		std::cout << " v0 : " << leftFootAxisData[0] << " v0 : " << leftFootAxisData[1] << " v0 : " << leftFootAxisData[2] << " v0 : " << leftFootAxisData[3] << " v0 : " << leftFootAxisData[4] << " v0 : " << leftFootAxisData[5] << std::endl;
+        // std::cout << " v0 : " << aValuesAIN[0]<< " v0 : " <<aValuesAIN[1] << " v0 : " << aValuesAIN[2] << " v0 : " << aValuesAIN[3] << " v0 : " << aValuesAIN[4] << " v0 : " << aValuesAIN[5] << std::endl;
 	}
 
 	CloseOrDie(handle);
